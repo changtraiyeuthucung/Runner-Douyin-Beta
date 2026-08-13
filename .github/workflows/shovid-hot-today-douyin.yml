@@ -1,0 +1,41 @@
+name: Shovid Douyin collector
+
+on:
+  schedule:
+    - cron: "11,41 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: shovid-hot-today-douyin
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: shovid-playwright-${{ runner.os }}-1.54.0
+      - name: Install browser runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.0
+          npx playwright install --with-deps chromium
+      - name: Collect Douyin hot search
+        run: node scripts/shovid-hot-today-douyin.mjs
+        env:
+          SHOVID_INGEST_URL: ${{ secrets.SHOVID_INGEST_URL }}
+          SHOVID_RUNNER_ID: ${{ secrets.SHOVID_RUNNER_ID }}
+          SHOVID_INGEST_TOKEN: ${{ secrets.SHOVID_INGEST_TOKEN }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
